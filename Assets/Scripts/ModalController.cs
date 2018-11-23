@@ -35,8 +35,9 @@ public class ModalController : MonoBehaviour
 
     void OnGoClick()
     {
-        elevator.floorsCount = int.Parse(floorsLabel.text);
-        floorsPanel.floorsCount = int.Parse(floorsLabel.text);
+        int floors_count = int.Parse(floorsLabel.text);
+        elevator.InitData(floors_count);
+        floorsPanel.InitData(floors_count);
 
         buttonGo.onClick.RemoveListener(OnPlusClick);
         buttonGo.onClick.RemoveListener(OnMinusClick);
