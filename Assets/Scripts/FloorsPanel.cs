@@ -3,11 +3,10 @@ using System.Collections;
 using UnityEngine.UI;
 using System.Collections.Generic;
 
-public class FloorsPanel : MonoBehaviour
+public class FloorsPanel : BasePanel
 {
     public ScrollRect scrollArea;
     public RectTransform content;
-    public Elevator elevator;
 
     private int floorsCount = 0;
     private List<Button> upButtons = new List<Button>();
@@ -16,7 +15,27 @@ public class FloorsPanel : MonoBehaviour
     public void InitData(int floor)
     {
         floorsCount = floor;
+        ElevatorManager.GetInstance().SetFloorsPanel(this);
         CreateFloorsButtons();
+    }
+    
+    public override void ResetPanel()
+    {
+        foreach (Button button in downButtons)
+        {
+            button.interactable = true;
+        }
+
+        foreach (Button button in upButtons)
+        {
+            button.interactable = true;
+        }
+    }
+
+    public override void UnlockButton(int floor)
+    {
+        upButtons[floor - 1].interactable = true;
+        downButtons[floor - 1].interactable = true;
     }
 
     private void CreateFloorsButtons()
@@ -36,8 +55,8 @@ public class FloorsPanel : MonoBehaviour
             up_down_controller.InitData(floor);
 
             int floor_copy = floor;
-            up_down_controller.downButton.onClick.AddListener(() => { OnElevatorUpButtonClick(floor_copy); });
-            up_down_controller.upButton.onClick.AddListener(() => { OnElevatorDownButtonClick(floor_copy); });
+            up_down_controller.downButton.onClick.AddListener(() => { OnElevatorDownButtonClick(floor_copy); });
+            up_down_controller.upButton.onClick.AddListener(() => { OnElevatorUpButtonClick(floor_copy); });
 
             upButtons.Add(up_down_controller.upButton);
             downButtons.Add(up_down_controller.downButton);
@@ -49,18 +68,30 @@ public class FloorsPanel : MonoBehaviour
 
     private void OnElevatorUpButtonClick(int floor)
     {
-        //в очередь добавить надо сообщение с номером этажа
         upButtons[floor - 1].interactable = false;
+        ElevatorTask task = new ElevatorTask(ElevatorTask.STOP_FLOOR_TASK_TYPE, floor);
+        task.DesiredDirection = Elevator.Direction.Up;
+        ElevatorManager.GetInstance().AddTaskToQueue(task);
     }
 
     private void OnElevatorDownButtonClick(int floor)
     {
-        //в очередь добавить надо сообщение с номером этажа
         downButtons[floor - 1].interactable = false;
+        ElevatorTask task = new ElevatorTask(ElevatorTask.STOP_FLOOR_TASK_TYPE, floor);
+        task.DesiredDirection = Elevator.Direction.Down;
+        ElevatorManager.GetInstance().AddTaskToQueue(task);
     }
 
-    void Update()
+    private void OnDestroy()
     {
+        foreach (Button button in upButtons)
+        {
+            button.onClick.RemoveAllListeners();
+        }
 
+        foreach (Button button in downButtons)
+        {
+            button.onClick.RemoveAllListeners();
+        }
     }
 }

@@ -9,31 +9,31 @@ public class ModalController : MonoBehaviour
     public Button buttonMinus;
     public Text floorsLabel;
     public GameObject game;
-    public Elevator elevator;
+    public ElevatorPanel elevator;
     public FloorsPanel floorsPanel;
 
     private int floorsCount = 1;
 
-    void Start()
+    private void Start()
     {
         buttonPlus.onClick.AddListener(OnPlusClick);
         buttonMinus.onClick.AddListener(OnMinusClick);
         buttonGo.onClick.AddListener(OnGoClick);
     }
 
-    void OnPlusClick()
+    private void OnPlusClick()
     {
         floorsCount++;
         floorsLabel.text = floorsCount.ToString();
     }
 
-    void OnMinusClick()
+    private void OnMinusClick()
     {
         floorsCount = floorsCount-- >= 0? floorsCount : 0;
         floorsLabel.text = floorsCount.ToString();
     }
 
-    void OnGoClick()
+    private void OnGoClick()
     {
         int floors_count = int.Parse(floorsLabel.text);
         elevator.InitData(floors_count);

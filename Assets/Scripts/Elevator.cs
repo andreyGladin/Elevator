@@ -1,104 +1,119 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using System.Collections.Specialized;
+﻿using UnityEngine;
+using System.Collections;
 using UnityEngine.UI;
-using System.Linq;
+using UnityEngine.EventSystems;
+using System;
 
-public enum Direction
-{
-    Up = 1,
-    Down = 2
-}
-
-public struct ElevatorMessage
-{
-    public int floor;
-    public bool isStopping;
-}
-
-public struct FloorMessage
-{
-    public int floor;
-    public Direction direction;
-}
 
 public class Elevator : MonoBehaviour
 {
-    public Text currentFloor;
-    public ScrollRect scrollArea;
-    public RectTransform content;
-
-    private int floorsCount = 0;
-    private List<Button> buttons = new List<Button>();
-    private List<ElevatorMessage> elevatorMessages = new List<ElevatorMessage>();
-    private List<FloorMessage> floorsMessages = new List<FloorMessage>();
-    private IState currentState;
-
-    public void InitData(int floor)
+    public enum Direction
     {
-        floorsCount = floor;
-        currentState = new WaitForCommandState();
-
-        CreateFloorsButtons();
+        Up = 1,
+        Down = 2,
+        Stop = 3
     }
 
-    private void CreateFloorsButtons()
-    {
-        float panel_dist_y = 80f;
+    public Text doorsLabel;
+    public Text currentFloorLabel;
 
-        for (int floor = floorsCount; floor > 0; floor--)
+    private ElevatorTask currentTask;
+    private bool IsDoorsOpen = false;
+    private bool IsMoving = false;
+    private int currentFloor = 1;
+    private const float MOVE_TIME = 0.7f;
+    private int targetFloor = 1;
+    private float timePassedMoving = 0f;
+
+    public void ExecuteTask(ElevatorTask task)
+    {
+        currentTask = task;
+
+        switch (task.TaskType)
         {
-            Vector3 panel_pos = new Vector3(0, 50f - panel_dist_y * floor, 0f);
-            GameObject button_go = Instantiate(Resources.Load("Prefabs/button_elevator")) as GameObject;
-            button_go.GetComponentInChildren<Text>().text = floor.ToString();
-
-            button_go.transform.SetParent(content.transform);
-            button_go.transform.localScale = Vector3.one;
-            button_go.transform.localPosition = panel_pos;
-
-            int floor_copy = floor;
-            Button button = button_go.GetComponentInChildren<Button>();
-            button.onClick.AddListener(() => { OnFloorButtonClick(floor_copy); });
-            buttons.Add(button);
+            case ElevatorTask.STOP_FLOOR_TASK_TYPE:
+            case ElevatorTask.MOVE_TASK_TYPE:
+                MoveElevatorOnFloor(task.TargetFloor);
+                break;
+            case ElevatorTask.STOP_TASK_TYPE:
+                StopElevator();
+                break;
+            default:
+                break;
         }
-        
-        buttons.Reverse();
     }
 
-    private void OnFloorButtonClick(int floor)
+    private void Start()
     {
-        buttons[floor - 1].interactable = false;
-        
-        AddElevatorMessageToQueue(new ElevatorMessage { floor = floor, isStopping = false });
+        ElevatorManager.GetInstance().SetManagedElevator(this);
     }
 
-    public void AddElevatorMessageToQueue(ElevatorMessage msg)
+    private void OpenDoors()
     {
-        elevatorMessages.Add(msg);
-
-        OnElevatorMessageAdd();
+        doorsLabel.text = "Doors Opened!";
+        IsDoorsOpen = true;
     }
 
-    public void AddFloorsMessageToQueue(FloorMessage msg)
+    private void CloseDoors()
     {
-        floorsMessages.Add(msg);
-
-        OnFloorMessageAdd();
+        doorsLabel.text = "Doors Closed!";
+        IsDoorsOpen = false;
     }
 
-    private void OnElevatorMessageAdd()
+    private void StopElevator()
     {
-
+        OpenDoors();
     }
 
-    private void OnFloorMessageAdd()
+    private void Update()
     {
+        if (IsMoving)
+        {
+            timePassedMoving += Time.deltaTime;
+            if (timePassedMoving > MOVE_TIME)
+            {
+                if (currentTask.TargetDirection == Direction.Down)
+                {
+                    currentFloor--;
+                }
+                else if (currentTask.TargetDirection == Direction.Up)
+                {
+                    currentFloor++;
+                }
 
+                ElevatorManager.GetInstance().SetCurrentFloor(currentFloor);
+                currentFloorLabel.text = currentFloor.ToString();
+                timePassedMoving = 0;
+
+                if (currentFloor == targetFloor)
+                {
+                    IsMoving = false;
+                    OpenDoors();
+                    ElevatorManager.GetInstance().SetTaskComplete(currentTask);
+                }
+            }
+        }
+
+        if (IsDoorsOpen)
+        {
+            timePassedMoving += Time.deltaTime;
+
+            if (timePassedMoving > MOVE_TIME)
+            {
+                timePassedMoving = 0;
+                CloseDoors();
+            }
+        }
     }
 
-    void Update ()
+    private void MoveElevatorOnFloor(int floor)
     {
-		
-	}
+        if (IsDoorsOpen)
+        {
+            CloseDoors();
+        }
+
+        IsMoving = true;
+        targetFloor = floor;
+    }
 }
